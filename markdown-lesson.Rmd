@@ -21,3 +21,6 @@ bg_chem <- read.csv("data/BGchem2008data.csv")
 ```{r, echo=FALSE}
 plot <- plot(bg_chem$Target_Depth, bg_chem$CTD_Temperature)
 ```
+
+# Verbiage
+Now I'm working on how to move changes back and forth using git. I can do this straight from RStudio.
