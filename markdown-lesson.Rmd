@@ -1,0 +1,23 @@
+---
+title: "Untitled"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data sources
+The file we're using is BGchem2008data.csv, which we downloaded from the NCEAS site. Then we did a bunch of stuff to it:
+
+* create data folder
+* upload data files
+* 
+
+```{r}
+bg_chem <- read.csv("data/BGchem2008data.csv")
+```
+
+# Plots
+```{r, echo=FALSE}
+plot <- plot(bg_chem$Target_Depth, bg_chem$CTD_Temperature)
+```
