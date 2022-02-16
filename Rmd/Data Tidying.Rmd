@@ -1,0 +1,105 @@
+---
+title: "Data Tidying"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(readr)
+```
+
+# Important notes
+* Cntrl + Alt + i to get a code block into Rmarkdown
+* Using read_csv from readr because it's more efficient and does better job of guessing column types
+* shortcut for pipes: Ctrl + Shift + M
+* Pipes are good for cutting out dataframes created for intermediary steps
+* Use drop down in Environment pane to quickly see variables (instead of str)
+* General rule: If column exists, then can write unquoted. However, if you're creating a column you need to name them within quotes (are assigning a string)
+* filter is the tidyverse version of subset (structured correctly to work in tidyr syntax)
+
+
+```{r}
+catch_original <- read_csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.302.1")
+```
+
+# Data manipulation
+```{r}
+catch_data <- catch_original %>% 
+  #select(Region, Year, Chinook, Coho, Pink, Chum, Sockeye)
+  select(-All, -notesRegCode)
+head(catch_data)
+```
+
+# Data examination
+Data examination for why Chinook is a character variable
+
+```{r}
+catch_clean <- catch_data %>% 
+  mutate(Chinook = if_else(Chinook == "I","1", Chinook)) %>%
+  mutate(Chinook = as.numeric(Chinook))
+```
+
+Finding spurious characters in Chinook column
+```{r}
+i <- which(is.na(catch_clean$Chinook))
+i
+catch_original[i,]
+```
+
+# Move from wide to long format
+* (pivot_longer now more used that melt, etc commands)
+* Can list all that need to be switched (but can be long) so sometimes easier to just say what you don't want converted
+* Can write code where use order of column (Chinnok:Pink or 3:5), but then are relying on the fact that the column order doesn't change. Better code written a way that column order doesn't matter.
+```{r}
+catch_long <- catch_clean %>%
+  pivot_longer(cols = -c(Region, Year), names_to = "Species", values_to = "Catch") 
+  #below not currently working
+  #rename(catch_thousands = Catch) %>% 
+  #mutate(catch = Catch_thousands * 1000)
+
+head(catch_long)
+```
+
+Put it back in wide format
+```{r}
+catch_wide <- catch_long %>% 
+  pivot_wider(names_from = Region, values_from = Catch)
+head(catch_wide)
+```
+
+# Summarize data
+```{r}
+mean_region <- catch_long %>% 
+  filter(Species == "Sockeye") %>% 
+  group_by(Region, Species) %>% 
+  summarise(catch_mean = mean(Catch),
+            n=n(), .groups="drop")
+
+#To get rid of the note within R console box we added the code .groups="drop"
+
+head(mean_region)
+```
+
+# Join data
+Let's do a left join to give full name of region abbreviation
+```{r}
+region_defs <- read_csv("https://knb.ecoinformatics.org/knb/d1/mn/v2/object/df35b.303.1") %>% 
+  select(code, mgmtArea)
+```
+
+```{r}
+catch_joined <- left_join(catch_long, region_defs, by = c("Region" = "code"))
+```
+The number of rows for a joined table should be the same. Look at your new table and check these things
+
+```{r}
+nrow(catch_joined) == nrow(catch_long)
+head(catch_joined)
+```
+
+
