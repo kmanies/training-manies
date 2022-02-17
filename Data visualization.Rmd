@@ -41,3 +41,44 @@ annual_esc <- esc %>%
   filter(Species %in% c("Sockeye", "Chinook", "Coho", "Pink", "Chum"))
 ```
 
+Plot these data
+```{r}
+ggplot(annual_esc, mapping = aes(x=Species, y=escapement, fill=SASAP.Region)) +
+  geom_col()
+```
+
+Plot these data only for Kodiak
+```{r}
+kodiak_esc <- annual_esc %>% 
+  filter(SASAP.Region=="Kodiak")
+```
+```{r}
+my_theme <- theme_bw() +
+  theme(legend.position="bottom")
+
+#The scale command is using the scales package. It works great for log and % scales.
+ggplot(kodiak_esc, aes(x=Year, y=escapement, color=Species)) + 
+  geom_point()+
+  geom_line()+
+  ylab("Escapement (num of fish)")+
+  ggtitle("Kodiak Escapement")+
+  scale_y_continuous(labels=comma)
+  my_theme
+  
+```
+
+Leaflet works great for creating multiple plots. see Section 9.2.4
+Creates a clickable map!!!
+Distinct only maps unique combinations (if you have many rows with same cordinates)
+```{r}
+locations <- esc %>% 
+  distinct(Location, Latitude, Longitude) %>% 
+  drop_na()
+```
+
+```{r}
+leaflet(locations) %>% 
+  addTiles() %>% 
+  addMarkers(lng = ~Longitude, lat = ~Latitude, popup = ~Location)
+```
+
