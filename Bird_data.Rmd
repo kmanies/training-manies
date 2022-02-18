@@ -1,0 +1,77 @@
+---
+title: "Bird study"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(rvest) #read and parse htlm from webpages, used to get data from table on website
+library(readr)
+library(dplyr)
+library(janitor)
+library(ggplot2)
+```
+
+Read in species data from table in webpage, place it in a dataframe
+Then replace space in the names with underscores & make species names in lower case
+```{r}
+webpage <- read_html("https://www.pwrc.usgs.gov/bbl/manual/speclist.cfm")
+
+tbls <- html_nodes(webpage, "table") %>% 
+    html_table(fill = TRUE)
+
+species <- tbls[[1]] %>% 
+    clean_names() %>% 
+    select(alpha_code, common_name) %>% 
+    mutate(alpha_code = tolower(alpha_code))
+```
+
+Now read in the other dataset you need
+```{r}
+data_url <- "https://arcticdata.io/metacat/d1/mn/v2/object/urn%3Auuid%3A982bd2fc-4edf-4da7-96ef-0d11b853102d"
+
+nest_data <- tryCatch(
+    read.csv("data/nest_data.csv"),
+    error=function(cond) {
+        message(paste("Escapement file does not seem to exist, so get it from the KNB."))
+        esc <- read.csv(url(data_url, method = "libcurl"))
+        return(esc)
+    }
+)
+
+data_url2 <- "https://arcticdata.io/metacat/d1/mn/v2/object/urn%3Auuid%3A9ffec04c-7e2d-41dd-9e88-b6c2e8c4375e"
+
+predator_data <- tryCatch(
+    read.csv("data/predator_data.csv"),
+    error=function(cond) {
+        message(paste("Escapement file does not seem to exist, so get it from the KNB."))
+        esc <- read.csv(url(data_url2, method = "libcurl"))
+        return(esc)
+    }
+)
+```
+
+Give species codes full names
+```{r}
+predator_joined <- left_join(predator_data, species, by=c("species" = "alpha_code"))
+```
+
+
+Sum the number of predators for each year, getting rid of NAs using the last line
+```{r}
+total_predator <- predator_joined %>% 
+  group_by(year, common_name) %>% 
+  summarise(count = sum(count, na.rm=T), .groups="drop") %>% 
+ filter(!is.na(common_name))
+
+```
+
+Plot the data
+```{r}
+ ggplot(total_predator, aes(x=year, y=count, color=common_name)) +
+  geom_point()
+```
+
